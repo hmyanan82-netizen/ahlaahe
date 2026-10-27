@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/((?!_nuxt|assets|favicon\\.png|admin\\.html).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
