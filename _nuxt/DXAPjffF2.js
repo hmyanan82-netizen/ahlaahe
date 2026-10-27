@@ -1,0 +1,1 @@
+import{H as e,T as t,W as r,j as _}from"./DcYApS2y.js";import{n as a}from"./DttGRHfg.js";import{t as o}from"./K9rsuiWd.js";import{t as c}from"./CTFTX2yQ.js";var p={class:"trap-page-root"},s=_({__name:"verify-bot-security-check",setup(i){return a({title:""}),e(()=>{c("crawler_direct_hit")}),(u,n)=>(r(),t("div",p))}}),v=o(s,[["__scopeId","data-v-406398ab"]]);export{v as default};

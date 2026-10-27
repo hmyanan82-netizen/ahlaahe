@@ -1,0 +1,1 @@
+import{o}from"./DWnlDZDm.js";var n=()=>window?.__NUXT__?.config||window?.useNuxtApp?.().payload?.config,i=()=>n().app,b=()=>i().baseURL,l=()=>i().buildAssetsDir,r=(...s)=>o(t(),l(),...s),t=(...s)=>{const a=i(),e=a.cdnURL||a.baseURL;return s.length?o(e,...s):e};globalThis.__buildAssetsURL=r;globalThis.__publicAssetsURL=t;export{r as n,t as r,b as t};
