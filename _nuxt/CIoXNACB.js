@@ -3,7 +3,7 @@ const SB_URL="https://cygtsszoelniltxhrtqv.supabase.co";
 const SB_KEY="sb_publishable_ngHlzlzwsIeOugytI8ebSQ_fjgNAmKT";
 const HDR={"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation"};
 
-async function sbq(path,opts={}){const u=SB_URL+"/rest/v1/"+path;try{const r=await fetch(u,{headers:HDR,...opts});if(!r.ok)return null;const ct=r.headers.get("content-type")||"";return ct.includes("json")?r.json():null;}catch{return null;}}
+async function sbq(path,opts={}){const u=SB_URL+"/rest/v1/"+path;try{console.log("[SB-AUTH] fetch:",u);const r=await fetch(u,{headers:HDR,...opts});console.log("[SB-AUTH] status:",r.status,r.statusText);if(!r.ok){const t=await r.text().catch(()=>"");console.warn("[SB-AUTH] err body:",t);return null;}const ct=r.headers.get("content-type")||"";const data=ct.includes("json")?await r.json():null;console.log("[SB-AUTH] data:",JSON.stringify(data));return data;}catch(e){console.error("[SB-AUTH] fetch error:",e);return null;}}
 
 function mkUser(row){
   if(!row)return null;
@@ -35,16 +35,20 @@ function Eo(app){
 }
 
 async function Va(auth,email,password){
+  console.log("[SB-AUTH] signIn called with:",email);
   const em=email.trim().toLowerCase();
   const rows=await sbq("dashboard_accounts?email=eq."+encodeURIComponent(em)+"&select=*");
-  if(!rows||!rows.length)throw{code:"auth/user-not-found",message:"No account found with this email."};
+  console.log("[SB-AUTH] query result:",rows);
+  if(!rows||!rows.length){console.error("[SB-AUTH] user not found for:",em);throw{code:"auth/user-not-found",message:"No account found with this email."};}
   const acc=rows[0];
-  if(acc.password!==password)throw{code:"auth/wrong-password",message:"Invalid password."};
-  if(acc.status==="disabled")throw{code:"auth/user-disabled",message:"This account has been disabled."};
+  console.log("[SB-AUTH] found account, comparing passwords. DB:",JSON.stringify(acc.password),"Input:",JSON.stringify(password));
+  if(acc.password!==password){console.error("[SB-AUTH] password mismatch");throw{code:"auth/wrong-password",message:"Invalid password."};}
+  if(acc.status==="disabled"){console.error("[SB-AUTH] account disabled");throw{code:"auth/user-disabled",message:"This account has been disabled."};}
   const user=mkUser(acc);auth.currentUser=user;
   try{sessionStorage.setItem("sb_auth_user",JSON.stringify(acc));}catch{}
   auth._notifyListeners();
   await sbq("dashboard_accounts?id=eq."+encodeURIComponent(acc.id),{method:"PATCH",body:JSON.stringify({last_login_at:new Date().toISOString()})});
+  console.log("[SB-AUTH] signIn success for:",em);
   return{user,operationType:"signIn"};
 }
 
