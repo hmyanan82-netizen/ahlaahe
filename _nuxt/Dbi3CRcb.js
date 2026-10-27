@@ -55,21 +55,26 @@ async function Ic(ref){
     const obj={};rows.forEach(r=>{obj[r.id]=r2fb(r,cfg.fmr);});
     return new Gt(obj,p.table);
   }
-  const rows=await sb(cfg.rest+"?id=eq."+encodeURIComponent(p.id)+"&select=*");
+  let rows=await _daLookup(cfg,p.id);
   if(!rows||!rows.length){return new Gt(null,p.sub.length?p.sub[p.sub.length-1]:p.id);}
   const fb=r2fb(rows[0],cfg.fmr);
   if(p.sub.length){let v=fb;for(const s of p.sub){if(v&&typeof v==="object")v=v[s];else{v=null;break;}}return new Gt(v,p.sub[p.sub.length-1]);}
   return new Gt(fb,p.id);
 }
 
+function _daEm(id){return id.replace(/_/g,".").replace(/\.\./g,"_");}
+async function _daLookup(cfg,id){let rows=await sb(cfg.rest+"?id=eq."+encodeURIComponent(id)+"&select=*");if((!rows||!rows.length)&&cfg.rest==="dashboard_accounts"){rows=await sb(cfg.rest+"?email=eq."+encodeURIComponent(_daEm(id))+"&select=*");}return rows;}
+async function _daFilter(cfg,id){const rows=await _daLookup(cfg,id);if(!rows||!rows.length)return null;return rows[0].id;}
+
 async function _usp(p,cfg,sub,data){
-  const rows=await sb(cfg.rest+"?id=eq."+encodeURIComponent(p.id)+"&select=*");
+  const rows=await _daLookup(cfg,p.id);
   if(!rows||!rows.length)return;
+  const realId=rows[0].id;
   const fb=r2fb(rows[0],cfg.fmr);
   let obj=fb;for(let i=0;i<sub.length-1;i++){if(!obj[sub[i]]||typeof obj[sub[i]]!=="object")obj[sub[i]]={};obj=obj[sub[i]];}
   obj[sub[sub.length-1]]=rTs(data);
   const row=fb2r(fb,cfg.fm);delete row.id;
-  await sb(cfg.rest+"?id=eq."+encodeURIComponent(p.id),{method:"PATCH",body:JSON.stringify(row)});
+  await sb(cfg.rest+"?id=eq."+encodeURIComponent(realId),{method:"PATCH",body:JSON.stringify(row)});
 }
 
 async function fr(ref,data){
@@ -87,14 +92,15 @@ async function fr(ref,data){
   const row=fb2r(typeof resolved==="object"&&resolved!==null?resolved:{value:resolved},cfg.fm);
   row.id=p.id;
   if(cfg.rest==="customer_events"){row.customer_id=row.customer_id||p.id;await sb(cfg.rest,{method:"POST",body:JSON.stringify(row)});return;}
-  const ex=await sb(cfg.rest+"?id=eq."+encodeURIComponent(p.id)+"&select=id");
-  if(ex&&ex.length){await sb(cfg.rest+"?id=eq."+encodeURIComponent(p.id),{method:"PATCH",body:JSON.stringify(row)});}
+  const realId=await _daFilter(cfg,p.id);
+  if(realId){delete row.id;await sb(cfg.rest+"?id=eq."+encodeURIComponent(realId),{method:"PATCH",body:JSON.stringify(row)});}
   else{await sb(cfg.rest,{method:"POST",body:JSON.stringify(row)});}
 }
 
 async function Tc(ref,updates){
   const p=pp(ref._path);const cfg=tc(p.table);if(!cfg||!p.id)return;
-  const rows=await sb(cfg.rest+"?id=eq."+encodeURIComponent(p.id)+"&select=*");
+  const rows=await _daLookup(cfg,p.id);
+  const realId=(rows&&rows.length)?rows[0].id:null;
   let fb;if(rows&&rows.length){fb=r2fb(rows[0],cfg.fmr);}else{fb={id:p.id};}
   for(const[key,val]of Object.entries(updates)){
     const rv=rTs(val);
@@ -102,7 +108,7 @@ async function Tc(ref,updates){
     else{fb[key]=rv;}
   }
   const row=fb2r(fb,cfg.fm);row.id=p.id;
-  if(rows&&rows.length){delete row.id;await sb(cfg.rest+"?id=eq."+encodeURIComponent(p.id),{method:"PATCH",body:JSON.stringify(row)});}
+  if(realId){delete row.id;await sb(cfg.rest+"?id=eq."+encodeURIComponent(realId),{method:"PATCH",body:JSON.stringify(row)});}
   else{await sb(cfg.rest,{method:"POST",body:JSON.stringify(row)});}
 }
 
@@ -117,7 +123,8 @@ function yc(ref){
 async function Cc(ref){
   const p=pp(ref._path);const cfg=tc(p.table);if(!cfg||!p.id)return;
   if(p.sub.length)return _usp(p,cfg,p.sub,null);
-  await sb(cfg.rest+"?id=eq."+encodeURIComponent(p.id),{method:"DELETE"});
+  const realId=await _daFilter(cfg,p.id);
+  await sb(cfg.rest+"?id=eq."+encodeURIComponent(realId||p.id),{method:"DELETE"});
 }
 
 const _L=new Map();let _lc=0;
